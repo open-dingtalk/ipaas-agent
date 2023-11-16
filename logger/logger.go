@@ -1,4 +1,4 @@
-package main
+package logger
 
 import (
 	"os"
@@ -46,14 +46,21 @@ func getLogger(configPath string) (*zap.Logger, error) {
 
 	// Read config from file
 	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		// Unmarshal config
+		err = yaml.Unmarshal(data, &config)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Set default config
+		config.Log.Level = "debug"
+		config.Log.Path = "./logs"
+		config.Log.Name = "gateway.log"
+		config.Log.MaxSize = 100
+		config.Log.MaxAge = 30
+		config.Log.MaxBackups = 10
+		config.Log.Compress = true
 	}
 
 	// Create a lumberjack logger
@@ -74,23 +81,21 @@ func getLogger(configPath string) (*zap.Logger, error) {
 		MessageKey:     "msg",
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
-		EncodeCaller:   zapcore.FullCallerEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
 	// Create a zapcore.Core that writes to our lumberjack logger
 	fileCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-		// zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.NewJSONEncoder(zap.NewDevelopmentEncoderConfig()),
 		zapcore.AddSync(lumberjackLogger),
-		zapcore.InfoLevel,
+		zapcore.DebugLevel,
 	)
 
 	// Create a zapcore.Core that writes to the console
 	consoleCore := zapcore.NewCore(
-		// zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
 		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(os.Stdout),
 		zapcore.DebugLevel,
@@ -100,7 +105,7 @@ func getLogger(configPath string) (*zap.Logger, error) {
 	core := zapcore.NewTee(fileCore, consoleCore)
 
 	// Create a zap.Logger from the Core
-	logger := zap.New(core)
+	logger := zap.New(core, zap.AddCaller())
 
 	// Set the logger level
 	switch config.Log.Level {
@@ -119,7 +124,7 @@ func getLogger(configPath string) (*zap.Logger, error) {
 	case "fatal":
 		logger = logger.WithOptions(zap.IncreaseLevel(zap.FatalLevel))
 	default:
-		logger = logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel))
+		logger = logger.WithOptions(zap.IncreaseLevel(zap.DebugLevel))
 	}
 
 	return logger, nil

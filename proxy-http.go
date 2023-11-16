@@ -53,20 +53,10 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 		logger.Error("unmarshal request body error", zap.Error(err))
 		return nil, err
 	}
-	// gwReqBodyMap, ok := gwReqBody.(map[string]interface{})
-	// if !ok {
-	// 	return nil, fmt.Errorf("[HandleHTTPRequest] invalid request, %v", gwReqBody)
-	// }
 
 	method := ipaasHTTPRequest.Method
 	url := ipaasHTTPRequest.URL
 
-	// bodyStr, ok := gwReqBodyMap["Body"].(string)
-	// if !ok {
-	// 	return nil, fmt.Errorf("[HandleHTTPRequest] invalid request body")
-	// }
-
-	// body := strings.NewReader(bodyStr)
 	body := strings.NewReader(ipaasHTTPRequest.Body)
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -74,17 +64,10 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 		return nil, err
 	}
 
-	// for key, value := range agentProtocol.Body.Header {
-	// 	request.Header.Set(key, value)
-	// }
-	// query := request.URL.Query()
-	// for key, value := range agentProtocol.Body.Query {
-	// 	query.Set(key, value)
-	// }
-	// request.URL.RawQuery = query.Encode()
-	// if agentProtocol.Body.Method == "POST" || agentProtocol.Body.Method == "PUT" {
-	// 	request.Header.Set("Content-Type", "application/json")
-	// }
+	for key, value := range ipaasHTTPRequest.Headers {
+		request.Header.Set(key, value)
+	}
+
 	ctx, cancel := context.WithTimeout(request.Context(), 5*time.Second)
 	defer cancel()
 	request = request.WithContext(ctx)

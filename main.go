@@ -4,16 +4,19 @@ import (
 	"context"
 
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/client"
-	"github.com/open-dingtalk/dingtalk-stream-sdk-go/logger"
+	StreamClientLogger "github.com/open-dingtalk/dingtalk-stream-sdk-go/logger"
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
 	"go.uber.org/zap"
+
+	"github.com/open-dingtalk/ipaas-net-gateway/config"
+	_ "github.com/open-dingtalk/ipaas-net-gateway/logger"
 )
 
 func main() {
-	clientId := config.Cleint.ClientId
-	clientSecret := config.Cleint.ClientSecret
+	clientId := config.GetConfig().Cleint.ClientId
+	clientSecret := config.GetConfig().Cleint.ClientSecret
 
-	logger.SetLogger(logger.NewStdTestLogger())
+	StreamClientLogger.SetLogger(StreamClientLogger.NewStdTestLogger())
 	cli := client.NewStreamClient(client.WithAppCredential(client.NewAppCredentialConfig(clientId, clientSecret)))
 
 	//注册事件类型的处理函数

@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -32,6 +32,10 @@ var config = &Config{}
 var configName = "config"
 var configType = "yaml"
 
+func GetConfig() *Config {
+	return config
+}
+
 func init() {
 	viper.SetConfigName(configName)
 	viper.SetConfigType(configType)
@@ -39,7 +43,7 @@ func init() {
 	viper.AddConfigPath(".")
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		logger := zap.S()
+		logger := zap.L()
 		logger.Info(fmt.Sprintf("Config file changed: %s", e.Name))
 		err := viper.Unmarshal(config)
 		if err != nil {
