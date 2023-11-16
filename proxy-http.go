@@ -22,7 +22,7 @@ func parseHTTPAgentResponse(resp *http.Response) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	logger := zap.S()
-	logger.Info("http request success", zap.String("response", string(body)))
+	logger.Info("http request success: ", zap.String("response", string(body)))
 	m := map[string]interface{}{
 		"status":     resp.Status,
 		"statusCode": resp.StatusCode,
@@ -50,7 +50,7 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 	err := json.Unmarshal([]byte(ipaasHTTPRequest.Body), &gwReqBody)
 
 	if err != nil {
-		logger.Error("unmarshal request body error", zap.Error(err))
+		logger.Error("unmarshal request body error: ", zap.Error(err))
 		return nil, err
 	}
 
@@ -60,7 +60,7 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 	body := strings.NewReader(ipaasHTTPRequest.Body)
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
-		logger.Error("create http request error", zap.Error(err))
+		logger.Error("create http request error: ", zap.Error(err))
 		return nil, err
 	}
 
@@ -73,7 +73,7 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 	request = request.WithContext(ctx)
 	response, err := httpClient.Do(request)
 	if err != nil {
-		logger.Error("http request error", zap.Error(err))
+		logger.Error("http request error: ", zap.Error(err))
 		return nil, err
 	}
 	defer response.Body.Close()

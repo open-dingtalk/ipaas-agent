@@ -35,6 +35,15 @@ type HTTPRequest struct {
 	Timeout     int               `json:"timeout"`
 }
 
+func (ap IPaaSAgentProtocol) MarshalJSON() ([]byte, error) {
+	type Alias IPaaSAgentProtocol
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&ap),
+	})
+}
+
 /*
 {
 	"headers": {
@@ -95,25 +104,26 @@ func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.Dat
 		logger.Error("marshal data error", zap.Error(err))
 		return nil, err
 	}
-	agentProtocol := &IPaaSAgentProtocol{}
-	err = json.Unmarshal(dataByte, &agentProtocol)
+	ap := &IPaaSAgentProtocol{}
+	err = json.Unmarshal(dataByte, &ap)
 	if err != nil {
-		logger.Error("unmarshal agent protocol error", zap.Error(err))
+		logger.Error("unmarshal agent protocol error: ", zap.Error(err))
 		return nil, err
 	}
-	logger.Info("agent", zap.Any("agent", agentProtocol))
-	switch agentProtocol.Headers.Type {
+	logger.Info("message from ipaas: ", zap.Any("agent protocol", ap))
+
+	switch ap.Headers.Type {
 	case "HTTP":
-		resp, err := HandleHTTPRequest(agentProtocol.Body.HTTPRequest)
+		resp, err := HandleHTTPRequest(ap.Body.HTTPRequest)
 		if err != nil {
-			logger.Error("handle http request error", zap.Error(err))
+			logger.Error("handle http request error: ", zap.Error(err))
 			return nil, err
 		}
 		return WrapStreamResponseWithBytes(resp), nil
 	case "mysql":
-		resp, err := HandleMySQLProxyRequesr(agentProtocol)
+		resp, err := HandleMySQLProxyRequesr(ap)
 		if err != nil {
-			logger.Error("handle mysql request error", zap.Error(err))
+			logger.Error("handle mysql request error: ", zap.Error(err))
 			return nil, err
 		}
 		return WrapStreamResponseWithBytes(resp), nil
@@ -121,7 +131,7 @@ func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.Dat
 	// case "config":
 	// 	return HandleConfig(agentProtocol)
 	default:
-		logger.Error("unknown type")
+		logger.Error("unknown type: ", zap.String("type", ap.Headers.Type))
 		return nil, nil
 	}
 }
