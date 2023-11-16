@@ -1,0 +1,127 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
+	"go.uber.org/zap"
+)
+
+type IPaaSAgentProtocol struct {
+	Headers Headers `json:"headers"`
+	Body    Body    `json:"body"`
+}
+
+type Headers struct {
+	SpecVersion     string `json:"specVersion"`
+	ConnectorCorpId string `json:"connectorCorpId"`
+	Type            string `json:"type"`
+	// connector property
+	ConnectorId string `json:"connectorId"`
+	ActionId    string `json:"actionId"`
+}
+
+type Body struct {
+	HTTPRequest HTTPRequest `json:"httpRequest"`
+}
+
+type HTTPRequest struct {
+	Headers     map[string]string `json:"headers"`
+	Method      string            `json:"method"`
+	Body        string            `json:"body"`
+	ContentType string            `json:"contentType"`
+	URL         string            `json:"url"`
+	Timeout     int               `json:"timeout"`
+}
+
+/*
+{
+	"headers": {
+		"connectorId": "dingb3b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",
+		"connectorCorpId": "dingb3b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",
+		"actionId": "actionId",
+		"type": "http",
+		"specversion": "1.0"
+	},
+	"body": {
+		"url": "https://mock.apifox.cn/m1/430534-0-default/mock2",
+		"method": "GET",
+		"domain": "mock.apifox.cn",
+		"path": "/",
+		"header": {
+			"Content-Type": "application/json"
+		},
+		"body": "",
+		"query": {
+			"key": "value"
+		},
+		"configKey": "configKey"
+}
+*/
+
+func WrapStreamResponseWithString(data string) *payload.DataFrameResponse {
+	logger := zap.S()
+	logger.Info("wrap stream response with string", zap.String("data", data))
+	response, err := json.Marshal(map[string]string{"response": data})
+	if err != nil {
+		logger.Error("marshal response error", zap.Error(err))
+		return nil
+	}
+	return &payload.DataFrameResponse{
+		Code: 200,
+		Headers: payload.DataFrameHeader{
+			"ContentType": "application/json",
+		},
+		Message: "success",
+		Data:    string(response),
+	}
+}
+
+func WrapStreamResponseWithBytes(data []byte) *payload.DataFrameResponse {
+	return WrapStreamResponseWithString(string(data))
+}
+
+func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.DataFrameResponse, error) {
+	logger := zap.S()
+	var data interface{}
+	err := json.Unmarshal([]byte(df.Data), &data)
+	if err != nil {
+		logger.Error("unmarshal data error", zap.Error(err))
+		return nil, err
+	}
+	dataByte, err := json.Marshal(data)
+	if err != nil {
+		logger.Error("marshal data error", zap.Error(err))
+		return nil, err
+	}
+	agentProtocol := &IPaaSAgentProtocol{}
+	err = json.Unmarshal(dataByte, &agentProtocol)
+	if err != nil {
+		logger.Error("unmarshal agent protocol error", zap.Error(err))
+		return nil, err
+	}
+	logger.Info("agent", zap.Any("agent", agentProtocol))
+	switch agentProtocol.Headers.Type {
+	case "HTTP":
+		resp, err := HandleHTTPRequest(agentProtocol.Body.HTTPRequest)
+		if err != nil {
+			logger.Error("handle http request error", zap.Error(err))
+			return nil, err
+		}
+		return WrapStreamResponseWithBytes(resp), nil
+	case "mysql":
+		resp, err := HandleMySQLProxyRequesr(agentProtocol)
+		if err != nil {
+			logger.Error("handle mysql request error", zap.Error(err))
+			return nil, err
+		}
+		return WrapStreamResponseWithBytes(resp), nil
+
+	// case "config":
+	// 	return HandleConfig(agentProtocol)
+	default:
+		logger.Error("unknown type")
+		return nil, nil
+	}
+}
