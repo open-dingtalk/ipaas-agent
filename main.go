@@ -21,7 +21,7 @@ func main() {
 
 	//注册事件类型的处理函数
 	cli.RegisterCallbackRouter("/v1.0/ipaas/proxy/callback", func(c context.Context, df *payload.DataFrame) (*payload.DataFrameResponse, error) {
-		logger := zap.S()
+		logger := zap.L()
 		logger.Info("receive data frame: ", zap.Any("data frame", df.Data))
 		response, _ := HandleIpaasCallBack(c, df)
 		return response, nil

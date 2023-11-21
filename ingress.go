@@ -44,33 +44,8 @@ func (ap IPaaSAgentProtocol) MarshalJSON() ([]byte, error) {
 	})
 }
 
-/*
-{
-	"headers": {
-		"connectorId": "dingb3b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",
-		"connectorCorpId": "dingb3b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",
-		"actionId": "actionId",
-		"type": "http",
-		"specversion": "1.0"
-	},
-	"body": {
-		"url": "https://mock.apifox.cn/m1/430534-0-default/mock2",
-		"method": "GET",
-		"domain": "mock.apifox.cn",
-		"path": "/",
-		"header": {
-			"Content-Type": "application/json"
-		},
-		"body": "",
-		"query": {
-			"key": "value"
-		},
-		"configKey": "configKey"
-}
-*/
-
 func WrapStreamResponseWithString(data string) *payload.DataFrameResponse {
-	logger := zap.S()
+	logger := zap.L()
 	logger.Info("wrap stream response with string", zap.String("data", data))
 	response, err := json.Marshal(map[string]string{"response": data})
 	if err != nil {
@@ -92,7 +67,7 @@ func WrapStreamResponseWithBytes(data []byte) *payload.DataFrameResponse {
 }
 
 func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.DataFrameResponse, error) {
-	logger := zap.S()
+	logger := zap.L()
 	var data interface{}
 	err := json.Unmarshal([]byte(df.Data), &data)
 	if err != nil {
@@ -110,7 +85,10 @@ func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.Dat
 		logger.Error("unmarshal agent protocol error: ", zap.Error(err))
 		return nil, err
 	}
-	logger.Info("message from ipaas: ", zap.Any("agent protocol", ap))
+	logger.Info("IPaaSAgentProtocol: ",
+		zap.Any("Headers: ", ap.Headers),
+		zap.Any("Body: ", ap.Body),
+	)
 
 	switch ap.Headers.Type {
 	case "HTTP":

@@ -21,7 +21,7 @@ func parseHTTPAgentResponse(resp *http.Response) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	logger := zap.S()
+	logger := zap.L()
 	logger.Info("http request success: ", zap.String("response", string(body)))
 	m := map[string]interface{}{
 		"status":     resp.Status,
@@ -45,7 +45,7 @@ func parseHTTPAgentResponse(resp *http.Response) ([]byte, error) {
 }
 
 func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
-	logger := zap.S()
+	logger := zap.L()
 	var gwReqBody interface{}
 	err := json.Unmarshal([]byte(ipaasHTTPRequest.Body), &gwReqBody)
 
@@ -67,8 +67,16 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 	for key, value := range ipaasHTTPRequest.Headers {
 		request.Header.Set(key, value)
 	}
+	request.Header.Set("Content-Type", "application/json")
+	if ipaasHTTPRequest.ContentType != "" {
+		request.Header.Set("Content-Type", ipaasHTTPRequest.ContentType)
+	}
+	timeout := ipaasHTTPRequest.Timeout
+	if timeout == 0 {
+		timeout = 5
+	}
 
-	ctx, cancel := context.WithTimeout(request.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(request.Context(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	request = request.WithContext(ctx)
 	response, err := httpClient.Do(request)
