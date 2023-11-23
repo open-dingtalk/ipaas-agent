@@ -98,8 +98,8 @@ func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.Dat
 			return nil, err
 		}
 		return WrapStreamResponseWithBytes(resp), nil
-	case "mysql":
-		resp, err := HandleMySQLProxyRequesr(ap)
+	case "MYSQL":
+		resp, err := HandleMySQLProxyRequest(ap)
 		if err != nil {
 			logger.Error("handle mysql request error: ", zap.Error(err))
 			return nil, err

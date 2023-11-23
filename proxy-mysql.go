@@ -12,7 +12,7 @@ import (
 	"github.com/open-dingtalk/ipaas-net-gateway/config"
 )
 
-func HandleMySQLProxyRequesr(agentProtocol *IPaaSAgentProtocol) ([]byte, error) {
+func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) {
 	logger := zap.L()
 	mySqlConfig := config.GetConfig().MySQL[0]
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", mySqlConfig.Username, mySqlConfig.Password, mySqlConfig.Addr, mySqlConfig.Database))

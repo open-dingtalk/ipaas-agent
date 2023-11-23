@@ -12,6 +12,10 @@ import (
 	_ "github.com/open-dingtalk/ipaas-net-gateway/logger"
 )
 
+var (
+	version = "0.0.1"
+)
+
 func main() {
 	clientId := config.GetConfig().Cleint.ClientId
 	clientSecret := config.GetConfig().Cleint.ClientSecret
