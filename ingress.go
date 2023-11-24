@@ -25,7 +25,7 @@ type Headers struct {
 type Body struct {
 	HTTPRequest  HTTPRequest       `json:"httpRequest"`
 	ConfigParams map[string]string `json:"configParams"`
-	ConfigKey    string            `json:"configId"`
+	ConfigKey    string            `json:"configKey"`
 }
 
 type HTTPRequest struct {
