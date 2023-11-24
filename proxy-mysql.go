@@ -13,7 +13,7 @@ import (
 )
 
 type MySQLAgentProtocol struct {
-	ConfigId     string       `json:"configId"`
+	ConfigKey    string       `json:"configKey"`
 	ConfigParams ConfigParams `json:"configParams"`
 }
 
@@ -25,14 +25,14 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 	logger := zap.L()
 	logger.Info("handle mysql proxy request", zap.Any("agentProtocol", agentProtocol))
 	mysqlProtocol := &MySQLAgentProtocol{
-		ConfigId:     agentProtocol.Body.ConfigId,
+		ConfigKey:    agentProtocol.Body.ConfigKey,
 		ConfigParams: ConfigParams{Sql: agentProtocol.Body.ConfigParams["sql"]},
 	}
 	logger.Info("mysql protocol", zap.Any("mysqlProtocol", mysqlProtocol))
 
-	mySqlConfig := findConfigByKey(mysqlProtocol.ConfigId)
+	mySqlConfig := findConfigByKey(mysqlProtocol.ConfigKey)
 	if mySqlConfig == nil {
-		logger.Error("mysql config not found", zap.String("configId", mysqlProtocol.ConfigId))
+		logger.Error("mysql config not found", zap.String("configId", mysqlProtocol.ConfigKey))
 		return nil, nil
 	}
 	logger.Info("mysql config", zap.Any("mySqlConfig", mySqlConfig))
