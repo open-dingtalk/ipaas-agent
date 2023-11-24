@@ -12,6 +12,7 @@ import (
 	"github.com/open-dingtalk/ipaas-net-gateway/config"
 )
 
+// see com.dingtalk.open.connect.engine.support.utils.IPaaSAgentUtils.Body
 type MySQLAgentProtocol struct {
 	ConfigKey    string       `json:"configKey"`
 	ConfigParams ConfigParams `json:"configParams"`
