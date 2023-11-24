@@ -12,9 +12,30 @@ import (
 	"github.com/open-dingtalk/ipaas-net-gateway/config"
 )
 
+type MySQLAgentProtocol struct {
+	ConfigId     string       `json:"configId"`
+	ConfigParams ConfigParams `json:"configParams"`
+}
+
+type ConfigParams struct {
+	Sql string `json:"sql"`
+}
+
 func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) {
 	logger := zap.L()
-	mySqlConfig := config.GetConfig().MySQL[0]
+	logger.Info("handle mysql proxy request", zap.Any("agentProtocol", agentProtocol))
+	mysqlProtocol := &MySQLAgentProtocol{
+		ConfigId:     agentProtocol.Body.ConfigId,
+		ConfigParams: ConfigParams{Sql: agentProtocol.Body.ConfigParams["sql"]},
+	}
+	logger.Info("mysql protocol", zap.Any("mysqlProtocol", mysqlProtocol))
+
+	mySqlConfig := findConfigByKey(mysqlProtocol.ConfigId)
+	if mySqlConfig == nil {
+		logger.Error("mysql config not found", zap.String("configId", mysqlProtocol.ConfigId))
+		return nil, nil
+	}
+	logger.Info("mysql config", zap.Any("mySqlConfig", mySqlConfig))
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", mySqlConfig.Username, mySqlConfig.Password, mySqlConfig.Addr, mySqlConfig.Database))
 	if err != nil {
 		panic(err)
@@ -25,19 +46,23 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 	db.SetMaxIdleConns(10)
 
 	// Query
-	rows, err := db.Query("SELECT * FROM users")
+	runSql := mysqlProtocol.ConfigParams.Sql
+	rows, err := db.Query(runSql)
 	if err != nil {
-		panic(err)
+		logger.Error("mysql query error", zap.Error(err))
+		return nil, err
 	}
 	columns, err := rows.Columns()
 	if err != nil {
-		panic(err)
+		logger.Error("mysql query error", zap.Error(err))
+		return nil, err
 	}
 
 	defer rows.Close()
 	err = rows.Err()
 	if err != nil {
-		panic(err)
+		logger.Error("mysql query error", zap.Error(err))
+		return nil, err
 	}
 	response := make([]map[string]interface{}, 0)
 	for rows.Next() {
@@ -65,4 +90,14 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 
 	db.Close()
 	return json.Marshal(response)
+}
+
+func findConfigByKey(key string) *config.MySqlConfig {
+	configs := config.GetConfig().MySQL
+	for _, config := range configs {
+		if config.ConfigKey == key {
+			return config
+		}
+	}
+	return nil
 }
