@@ -74,7 +74,8 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 		}
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			panic(err)
+			logger.Error("mysql query error", zap.Error(err))
+			return nil, err
 		}
 
 		row := make(map[string]interface{})

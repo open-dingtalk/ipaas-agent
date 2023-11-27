@@ -104,7 +104,7 @@ func HandleIpaasCallBack(c context.Context, df *payload.DataFrame) (*payload.Dat
 		resp, err := HandleMySQLProxyRequest(ap)
 		if err != nil {
 			logger.Error("handle mysql request error: ", zap.Error(err))
-			return nil, err
+			return WrapStreamResponseWithString(err.Error()), nil
 		}
 		return WrapStreamResponseWithBytes(resp), nil
 
