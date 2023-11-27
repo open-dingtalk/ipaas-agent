@@ -7,7 +7,7 @@ mkdir -p bin
 APP_VERSION=1.0.0
 
 # APP Name
-APP_NAME=myapp
+APP_NAME=agent
 
 # 编译Windows的可执行文件
 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$APP_VERSION" -o bin/${APP_NAME}_windows_amd64.exe

@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type LogConfig struct {
+type logConfig struct {
 	Log struct {
 		Level      string `yaml:"level"`
 		Path       string `yaml:"path"`
@@ -19,15 +19,6 @@ type LogConfig struct {
 		MaxBackups int    `yaml:"maxbackups"`
 		Compress   bool   `yaml:"compress"`
 	} `yaml:"log"`
-}
-
-type ZapLoggerWrapper struct {
-	logger *zap.SugaredLogger
-}
-
-func (z *ZapLoggerWrapper) Write(p []byte) (n int, err error) {
-	z.logger.Error(string(p))
-	return len(p), nil
 }
 
 func init() {
@@ -42,7 +33,7 @@ func init() {
 }
 
 func getLogger(configPath string) (*zap.Logger, error) {
-	var config LogConfig
+	var config logConfig
 
 	// Read config from file
 	data, err := os.ReadFile(configPath)
@@ -81,7 +72,7 @@ func getLogger(configPath string) (*zap.Logger, error) {
 		MessageKey:     "msg",
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
