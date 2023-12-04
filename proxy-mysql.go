@@ -9,7 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 
-	"github.com/open-dingtalk/ipaas-net-gateway/config"
+	"github.com/open-dingtalk/ipaas-agent/config"
 )
 
 // see com.dingtalk.open.connect.engine.support.utils.IPaaSAgentUtils.Body

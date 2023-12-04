@@ -12,16 +12,16 @@ import (
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/client"
 	StreamClientLogger "github.com/open-dingtalk/dingtalk-stream-sdk-go/logger"
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
-	"github.com/open-dingtalk/ipaas-net-gateway/config"
+	"github.com/open-dingtalk/ipaas-agent/config"
 	"go.uber.org/zap"
 
-	_ "github.com/open-dingtalk/ipaas-net-gateway/logger"
+	_ "github.com/open-dingtalk/ipaas-agent/logger" // 更正后的导入路径
 )
 
 func printWelcomePage() {
 	// 打印欢迎页面
 	fmt.Println("====================================")
-	fmt.Println("= Welcome to use ipaas-net-gateway =")
+	fmt.Println("= Welcome to use ipaas-agent =")
 	fmt.Println("= Version: 0.0.1                   =")
 	fmt.Println("====================================")
 }

@@ -1,4 +1,4 @@
-module Gate
+module github.com/open-dingtalk/ipaas-agent
 
 go 1.21.3
 
@@ -6,7 +6,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/open-dingtalk/dingtalk-stream-sdk-go v0.7.0
-	github.com/open-dingtalk/ipaas-net-gateway v0.0.0-00010101000000-000000000000
 	github.com/spf13/viper v1.17.0
 	go.uber.org/zap v1.26.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -40,4 +39,3 @@ require (
 
 // replace github.com/open-dingtalk/dingtalk-stream-sdk-go => /Users/hy/IdeaProjects/goDir/dingtalk-stream-sdk-go
 
-replace github.com/open-dingtalk/ipaas-net-gateway => /Users/hy/IdeaProjects/goDir/ipaas-net-gate
