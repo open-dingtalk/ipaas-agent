@@ -15,14 +15,14 @@ import (
 	"github.com/open-dingtalk/ipaas-agent/config"
 	"go.uber.org/zap"
 
-	_ "github.com/open-dingtalk/ipaas-agent/logger" // 更正后的导入路径
+	"github.com/open-dingtalk/ipaas-agent/logger" // 更正后的导入路径
 )
 
 func printWelcomePage() {
 	// 打印欢迎页面
 	fmt.Println("====================================")
 	fmt.Println("= Welcome to use ipaas-agent       =")
-	fmt.Println("= Version: " + Version + "         =")
+	fmt.Println("= Version: " + Version + "              =")
 	fmt.Println("====================================")
 }
 
@@ -34,7 +34,7 @@ func (p *program) initClient(env svc.Environment) error {
 	clientId := config.GetConfig().Cleint.ClientId
 	clientSecret := config.GetConfig().Cleint.ClientSecret
 
-	StreamClientLogger.SetLogger(StreamClientLogger.NewStdTestLogger())
+	StreamClientLogger.SetLogger(logger.NewSdkLogger())
 
 	extra := make(map[string]string)
 	// 获取操作系统版本
@@ -42,15 +42,15 @@ func (p *program) initClient(env svc.Environment) error {
 	// 获取主机名
 	hostname, err := os.Hostname()
 	if err != nil {
-		return err
+		fmt.Println("get hostname error: ", err)
+		hostname = "unknown"
 	}
 	extra["hostname"] = hostname
+	extra["agentVersion"] = Version
 
-	var openApiHost string
-	if runtime.GOOS == "windows" {
-		openApiHost = "https://windows-api.dingtalk.com"
-	} else {
-		openApiHost = "https://pre-api.dingtalk.com"
+	openApiHost := os.Getenv("OPEN_API_HOST")
+	if openApiHost == "" {
+		openApiHost = "https://api.dingtalk.com"
 	}
 
 	p.cli = client.NewStreamClient(

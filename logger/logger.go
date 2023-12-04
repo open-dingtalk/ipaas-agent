@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 
 	"go.uber.org/zap"
@@ -119,4 +120,38 @@ func getLogger(configPath string) (*zap.Logger, error) {
 	}
 
 	return logger, nil
+}
+
+type SdkLogger struct {
+	logger *zap.Logger
+}
+
+func NewSdkLogger() *SdkLogger {
+	return &SdkLogger{
+		logger: zap.L(),
+	}
+}
+
+func (l *SdkLogger) Debugf(format string, args ...interface{}) {
+	l.logger.Debug("SdkLogger: " + fmt.Sprintf(format, args...))
+}
+
+func (l *SdkLogger) Infof(format string, args ...interface{}) {
+	l.logger.Info("SdkLogger: " + fmt.Sprintf(format, args...))
+}
+
+func (l *SdkLogger) Warningf(format string, args ...interface{}) {
+	l.logger.Warn("SdkLogger: " + fmt.Sprintf(format, args...))
+}
+
+func (l *SdkLogger) Errorf(format string, args ...interface{}) {
+	l.logger.Error("SdkLogger: " + fmt.Sprintf(format, args...))
+}
+
+func (l *SdkLogger) Fatalf(format string, args ...interface{}) {
+	l.logger.Fatal("SdkLogger: " + fmt.Sprintf(format, args...))
+}
+
+func (l *SdkLogger) Panicf(format string, args ...interface{}) {
+	l.logger.Panic("SdkLogger: " + fmt.Sprintf(format, args...))
 }
