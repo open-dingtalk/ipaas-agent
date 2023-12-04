@@ -1,7 +1,7 @@
 log:
   level: debug
   path: tmp/log
-  name: test.log
+  name: ipaas-agent.log
   maxsize: 100
   maxage: 7
   maxbackups: 10
