@@ -38,4 +38,3 @@ require (
 )
 
 // replace github.com/open-dingtalk/dingtalk-stream-sdk-go => /Users/hy/IdeaProjects/goDir/dingtalk-stream-sdk-go
-

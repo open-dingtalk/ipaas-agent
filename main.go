@@ -21,8 +21,8 @@ import (
 func printWelcomePage() {
 	// 打印欢迎页面
 	fmt.Println("====================================")
-	fmt.Println("= Welcome to use ipaas-agent =")
-	fmt.Println("= Version: 0.0.1                   =")
+	fmt.Println("= Welcome to use ipaas-agent       =")
+	fmt.Println("= Version: " + Version + "         =")
 	fmt.Println("====================================")
 }
 
