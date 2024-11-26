@@ -1,8 +1,8 @@
 package v1
 
-type ClientConfig struct {
-	ClientCommonConfig
-}
+// type ClientConfig struct {
+// 	ClientCommonConfig
+// }
 
 type ClientCommonConfig struct {
 	Auth    AuthClientConfig           `json:"auth"`
@@ -13,10 +13,15 @@ type ClientCommonConfig struct {
 type AuthClientConfig struct {
 	ClientID     string `json:"clientID"`
 	ClientSecret string `json:"clientSecret"`
+	OpenAPIHost  string `json:"openAPIHost"`
 }
 
-func (c *ClientConfig) Complete() {
+func (c *ClientCommonConfig) Complete() {
 	for i := range c.Plugins {
 		c.Plugins[i].Complete()
+	}
+
+	if c.Auth.OpenAPIHost == "" {
+		c.Auth.OpenAPIHost = "https://api.dingtalk.com"
 	}
 }

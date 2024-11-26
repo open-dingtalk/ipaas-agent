@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"encoding/json"
-	"fmt"
 	"reflect"
 )
 
@@ -15,28 +13,11 @@ type TypedClientPluginOptions struct {
 	ClientPluginOptions
 }
 
-func (c *TypedClientPluginOptions) UnmarshalJSON(data []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if rawType, ok := raw["type"].(string); ok {
-		c.Type = rawType
-	}
-	if c.Type == "" {
-		return fmt.Errorf("missing type field")
-	}
-	if t, ok := clientPluginOptionsTypeMap[c.Type]; ok {
-		c.ClientPluginOptions = reflect.New(t).Interface().(ClientPluginOptions)
-	}
-	return json.Unmarshal(data, c.ClientPluginOptions)
-}
-
 const (
 	PluginMySQL = "mysql"
 )
 
-var clientPluginOptionsTypeMap = map[string]reflect.Type{
+var ClientPluginOptionsTypeMap = map[string]reflect.Type{
 	PluginMySQL: reflect.TypeOf(MySQLPluginOptions{}),
 }
 

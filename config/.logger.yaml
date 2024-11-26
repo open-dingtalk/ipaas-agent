@@ -1,8 +1,0 @@
-log:
-  level: debug
-  path: tmp/log
-  name: ipaas-agent.log
-  maxsize: 100
-  maxage: 7
-  maxbackups: 10
-  compress: true

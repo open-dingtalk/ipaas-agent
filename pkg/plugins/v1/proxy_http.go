@@ -1,17 +1,25 @@
-package main
+package v1
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 )
+
+type HTTPRequest struct {
+	Headers     map[string]string `json:"headers"`
+	Method      string            `json:"method"`
+	Body        string            `json:"body"`
+	ContentType string            `json:"contentType"`
+	URL         string            `json:"url"`
+	Timeout     int               `json:"timeout"`
+}
 
 var httpClient = &http.Client{}
 
@@ -21,8 +29,7 @@ func parseHTTPAgentResponse(resp *http.Response) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	logger := zap.L()
-	logger.Info("http request success: ", zap.String("response", string(body)))
+	logger.Log1.Infof("http request success: %s", string(body))
 	m := map[string]interface{}{
 		"status":     resp.Status,
 		"statusCode": resp.StatusCode,
@@ -45,12 +52,11 @@ func parseHTTPAgentResponse(resp *http.Response) ([]byte, error) {
 }
 
 func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
-	logger := zap.L()
 	var gwReqBody interface{}
 	err := json.Unmarshal([]byte(ipaasHTTPRequest.Body), &gwReqBody)
 
 	if err != nil {
-		logger.Error("unmarshal request body error: ", zap.Error(err))
+		logger.Log1.Errorf("unmarshal http request body error: %v", err)
 		return nil, err
 	}
 
@@ -60,7 +66,7 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 	body := strings.NewReader(ipaasHTTPRequest.Body)
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
-		logger.Error("create http request error: ", zap.Error(err))
+		logger.Log1.Errorf("create http request error: %v", err)
 		return nil, err
 	}
 
@@ -81,13 +87,13 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 	request = request.WithContext(ctx)
 	response, err := httpClient.Do(request)
 	if err != nil {
-		logger.Error("http request error: ", zap.Error(err))
+		logger.Log1.Errorf("http request error: %v", err)
 		return nil, err
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", response.StatusCode)
-	}
+	// if response.StatusCode != http.StatusOK {
+	// 	return nil, fmt.Errorf("unexpected status code: %d", response.StatusCode)
+	// }
 	m, err2 := parseHTTPAgentResponse(response)
 	return m, err2
 }

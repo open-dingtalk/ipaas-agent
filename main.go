@@ -2,100 +2,89 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os"
-	"runtime"
-	"syscall"
 
 	"github.com/judwhite/go-svc"
-	"github.com/open-dingtalk/dingtalk-stream-sdk-go/client"
 	StreamClientLogger "github.com/open-dingtalk/dingtalk-stream-sdk-go/logger"
-	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
-	"github.com/open-dingtalk/ipaas-agent/config"
-	"go.uber.org/zap"
+	"github.com/open-dingtalk/ipaas-agent/pkg/client"
+	"github.com/open-dingtalk/ipaas-agent/pkg/config"
+	"github.com/open-dingtalk/ipaas-agent/pkg/plugins"
+	"github.com/open-dingtalk/ipaas-agent/pkg/ui"
 
-	"github.com/open-dingtalk/ipaas-agent/logger" // 更正后的导入路径
+	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 )
 
-func printWelcomePage() {
-	// 打印欢迎页面
-	fmt.Println("====================================")
-	fmt.Println("= Welcome to use ipaas-agent       =")
-	fmt.Println("= Version: " + Version + "              =")
-	fmt.Println("====================================")
-}
-
 type program struct {
-	cli *client.StreamClient
+	cli    *client.Client
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func (p *program) initClient(env svc.Environment) error {
-	clientId := config.GetConfig().Cleint.ClientId
-	clientSecret := config.GetConfig().Cleint.ClientSecret
+func (p *program) Init(env svc.Environment) error {
+	// 初始化日志
+	// logger.InitLogger()
+	StreamClientLogger.SetLogger(logger.Log2)
 
-	StreamClientLogger.SetLogger(logger.NewSdkLogger())
-
-	extra := make(map[string]string)
-	// 获取操作系统版本
-	extra["osVersion"] = runtime.GOOS
-	// 获取主机名
-	hostname, err := os.Hostname()
+	// 读取配置文件
+	err := config.LoadConfig()
 	if err != nil {
-		fmt.Println("get hostname error: ", err)
-		hostname = "unknown"
-	}
-	extra["hostname"] = hostname
-	extra["agentVersion"] = Version
-
-	openApiHost := os.Getenv("OPEN_API_HOST")
-	if openApiHost == "" {
-		openApiHost = "https://api.dingtalk.com"
+		logger.Log1.Fatal("加载配置文件出错: ", err)
+		return err
 	}
 
-	p.cli = client.NewStreamClient(
-		client.WithAppCredential(client.NewAppCredentialConfig(clientId, clientSecret)),
-		client.WithOpenApiHost(openApiHost),
-		client.WithExtras(extra))
+	// 初始化UI
+	ui.InitUI()
 
-	//注册事件类型的处理函数
-	p.cli.RegisterCallbackRouter("/v1.0/ipaas/proxy/callback", func(c context.Context, df *payload.DataFrame) (*payload.DataFrameResponse, error) {
-		logger := zap.L()
-		logger.Info("receive data frame: ", zap.Any("data frame", df.Data))
-		response, _ := HandleIpaasCallBack(c, df)
-		return response, nil
+	// 初始化插件
+	pluginManager := plugins.NewPluginManager()
+	err = pluginManager.LoadPlugins()
+	if err != nil {
+		logger.Log1.Fatalf("加载插件失败: %v", err)
+		return err
+	}
+
+	// 初始化客户端
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.cli = client.NewClient(config.GetAuthClientConfig(), pluginManager)
+	err = p.cli.Connect(p.ctx)
+	if err != nil {
+		logger.Log1.Fatalf("连接到服务器失败: %v", err)
+		return err
+	}
+
+	// 监听配置文件变化
+	go config.WatchConfig(func() {
+		logger.Log1.Info("配置文件已更新")
 	})
 
+	ui.UpdateUISuccess("初始化成功")
+
+	return nil
+}
+
+func (p *program) Start() error {
+	// 启动服务
+	go func() {
+		<-p.ctx.Done()
+		// 在这里处理上下文取消后的清理工作
+	}()
+	return nil
+}
+
+func (p *program) Stop() error {
+	// 停止服务
+	if p.cli != nil {
+		p.cli.Disconnect()
+	}
+	// 取消上下文
+	if p.cancel != nil {
+		p.cancel()
+	}
 	return nil
 }
 
 func main() {
 	prg := &program{}
-	if err := svc.Run(prg, syscall.SIGINT, syscall.SIGTERM); err != nil {
-		log.Fatal(err)
+	if err := svc.Run(prg); err != nil {
+		logger.Log1.Fatalf("服务运行出错: %v", err)
 	}
-}
-
-func (p *program) Init(env svc.Environment) error {
-	if env.IsWindowsService() {
-		// windows service specific actions
-	}
-
-	return p.initClient(env)
-}
-
-func (p *program) Start() error {
-	printWelcomePage()
-
-	err := p.cli.Start(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *program) Stop() error {
-	p.cli.Close()
-	return nil
 }
