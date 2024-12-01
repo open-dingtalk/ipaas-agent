@@ -17,9 +17,10 @@ import (
 
 // MYSQLPlugin 结构体定义 MySQL 插件
 type MySQLPlugin struct {
-	Name        string
-	AllowRemote bool
-	Configs     []Body
+	Name         string
+	AllowRemote  bool
+	ValueAsBytes bool
+	Configs      []Body
 }
 
 // getConnection 创建数据库连接
@@ -72,6 +73,12 @@ func (p *MySQLPlugin) DoSQLExecute(body *Body) *QueryResult {
 		}
 	}
 
+	// 获取列类型
+	columnTypes, errCT := rows.ColumnTypes()
+	if errCT != nil {
+		logger.Log1.Warningf("获取列类型失败: %v", err)
+	}
+
 	// 准备结果集
 	var result []map[string]interface{}
 
@@ -92,7 +99,21 @@ func (p *MySQLPlugin) DoSQLExecute(body *Body) *QueryResult {
 		row := make(map[string]interface{})
 		for i, col := range columns {
 			val := values[i].(*interface{})
-			row[col] = *val
+			switch v := (*val).(type) {
+			// 对于[]byte类型的数据，特殊处理
+			case []byte:
+				if p.ValueAsBytes {
+					row[col] = v
+					continue
+				}
+				if columnTypes[i].DatabaseTypeName() == "DATE" {
+					row[col] = string(v)
+				} else {
+					row[col] = string(v)
+				}
+			default:
+				row[col] = v
+			}
 		}
 		result = append(result, row)
 	}
@@ -137,6 +158,7 @@ func (p *MySQLPlugin) Init() error {
 		WithField("插件名", p.Name).
 		WithField("配置列表", p.Configs).
 		WithField("允许远程配置", p.AllowRemote).
+		WithField("以二进制作为结果", p.ValueAsBytes).
 		Info("插件已初始化")
 	return nil
 }

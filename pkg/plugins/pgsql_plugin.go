@@ -121,13 +121,13 @@ func (p *PGSQLPlugin) Init() error {
 	var sqlConfigs []Body
 
 	// 解析 SQL 配置
-	if err := viper.UnmarshalKey("plugins.mssql", &sqlConfigs); err != nil {
+	if err := viper.UnmarshalKey("plugins.pgsql", &sqlConfigs); err != nil {
 		logger.Log1.Fatalf("解析 MSSQL 配置出错: %v", err)
 	}
 
 	p.Configs = sqlConfigs
 
-	p.AllowRemote = viper.GetBool("auth.mssql.allow_remote")
+	p.AllowRemote = viper.GetBool("auth.pgsql.allow_remote")
 
 	logger.Log1.
 		WithField("插件名", p.Name).
