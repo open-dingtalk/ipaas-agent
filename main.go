@@ -9,6 +9,7 @@ import (
 	"github.com/open-dingtalk/ipaas-agent/pkg/config"
 	"github.com/open-dingtalk/ipaas-agent/pkg/plugins"
 	"github.com/open-dingtalk/ipaas-agent/pkg/ui"
+	"github.com/sirupsen/logrus"
 
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 )
@@ -19,9 +20,22 @@ type program struct {
 	cancel context.CancelFunc
 }
 
+var (
+	BuildTime string = "DEV"
+	GitCommit string = "DEV"
+	Version   string = "DEV"
+)
+
 func (p *program) Init(env svc.Environment) error {
 	// 初始化日志
 	// logger.InitLogger()
+	// 打印版本信息
+	logger.Log1.WithFields(logrus.Fields{
+		"buildTime": BuildTime,
+		"gitCommit": GitCommit,
+		"version":   Version,
+	}).Info("启动程序")
+
 	StreamClientLogger.SetLogger(logger.Log2)
 
 	// 读取配置文件
@@ -54,6 +68,8 @@ func (p *program) Init(env svc.Environment) error {
 	// 监听配置文件变化
 	go config.WatchConfig(func() {
 		logger.Log1.Info("配置文件已更新")
+		// 重新加载配置
+		pluginManager.ReloadConfig()
 	})
 
 	ui.UpdateUISuccess("初始化成功")

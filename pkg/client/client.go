@@ -53,7 +53,7 @@ func (c *Client) handleServerMessage(ctx context.Context, df *payload.DataFrame)
 	logger.Log1.Infof("收到服务器消息: %v", df)
 	response, err := c.pluginManager.HandleMessage(ctx, df)
 	if err != nil {
-		logger.Log1.Errorf("处理消息失败: %v", err)
+		logger.Log1.WithField("错误", err).Errorf("处理消息失败")
 		return nil, err
 	}
 	return response, nil
@@ -64,4 +64,5 @@ func (c *Client) Disconnect() {
 		c.streamClient.Close()
 	}
 	logger.Log1.Info("已断开与服务器的连接")
+	c.pluginManager.CloseAll()
 }

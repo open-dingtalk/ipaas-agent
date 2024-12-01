@@ -52,6 +52,10 @@ func LoadConfig() error {
 	// 从环境变量中读取配置
 	viper.BindEnv("auth.openAPIHost", "IPAAS_AGENT_AUTH_OPEN_API_HOST")
 
+	// 默认值
+	viper.SetDefault("auth.mssql.allow_remote", false)
+	viper.SetDefault("auth.mysql.allow_remote", false)
+
 	return nil
 }
 

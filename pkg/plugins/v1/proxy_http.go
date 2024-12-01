@@ -1,9 +1,7 @@
 package v1
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -21,45 +19,35 @@ type HTTPRequest struct {
 	Timeout     int               `json:"timeout"`
 }
 
-var httpClient = &http.Client{}
-
-func parseHTTPAgentResponse(resp *http.Response) ([]byte, error) {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	logger.Log1.Infof("http request success: %s", string(body))
-	m := map[string]interface{}{
-		"status":     resp.Status,
-		"statusCode": resp.StatusCode,
-		"proto":      resp.Proto,
-		"header":     resp.Header,
-		"body":       string(body),
-	}
-
-	// 将m编码为JSON，并防止转义
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(m)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return buffer.Bytes(), nil
+type HTTPResponse struct {
+	Status     string            `json:"status"`
+	StatusCode int               `json:"statusCode"`
+	Proto      string            `json:"proto"`
+	Header     map[string]string `json:"header"`
+	Body       string            `json:"body"`
 }
 
-func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
-	var gwReqBody interface{}
-	err := json.Unmarshal([]byte(ipaasHTTPRequest.Body), &gwReqBody)
+var httpClient = &http.Client{}
 
+func parseHTTPAgentResponse(resp *http.Response, respv1 *HTTPResponse) error {
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Log1.Errorf("unmarshal http request body error: %v", err)
-		return nil, err
+		return err
 	}
+	defer resp.Body.Close()
+	logger.Log1.Infof("HTTP 请求成功: %s", string(body))
+	respv1.Status = resp.Status
+	respv1.StatusCode = resp.StatusCode
+	respv1.Proto = resp.Proto
+	respv1.Header = make(map[string]string)
+	for k, v := range resp.Header {
+		respv1.Header[k] = strings.Join(v, ",")
+	}
+	respv1.Body = string(body)
+	return nil
+}
 
+func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) (*HTTPResponse, error) {
 	method := ipaasHTTPRequest.Method
 	url := ipaasHTTPRequest.URL
 
@@ -91,9 +79,11 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) ([]byte, error) {
 		return nil, err
 	}
 	defer response.Body.Close()
-	// if response.StatusCode != http.StatusOK {
-	// 	return nil, fmt.Errorf("unexpected status code: %d", response.StatusCode)
-	// }
-	m, err2 := parseHTTPAgentResponse(response)
-	return m, err2
+	var m HTTPResponse // HTTPResponse
+	err = parseHTTPAgentResponse(response, &m)
+	if err != nil {
+		logger.Log1.Errorf("parse http response error: %v", err)
+		return nil, err
+	}
+	return &m, err
 }

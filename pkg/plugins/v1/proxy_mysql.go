@@ -2,7 +2,6 @@ package v1
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -50,7 +49,7 @@ type MySQLConfig struct {
 	ConfigKey string `mapstructure:"config_key,omitempty" json:"config_key,omitempty" `
 }
 
-func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) {
+func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) (interface{}, error) {
 	logger.Log1.Infof("handle mysql proxy request: %v", agentProtocol)
 	mysqlProtocol := &MySQLAgentProtocol{
 		ConfigKey:    agentProtocol.Body.ConfigKey,
@@ -77,19 +76,19 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 	runSql := mysqlProtocol.ConfigParams.Sql
 	rows, err := db.Query(runSql)
 	if err != nil {
-		logger.Log1.Fatalf("mysql query error: %v", err)
+		logger.Log1.Errorf("mysql query error: %v", err)
 		return nil, err
 	}
 	columns, err := rows.Columns()
 	if err != nil {
-		logger.Log1.Fatalf("mysql query error: %v", err)
+		logger.Log1.Errorf("mysql query error: %v", err)
 		return nil, err
 	}
 
 	defer rows.Close()
 	err = rows.Err()
 	if err != nil {
-		logger.Log1.Fatalf("mysql query error: %v", err)
+		logger.Log1.Errorf("mysql query error: %v", err)
 		return nil, err
 	}
 	response := make([]map[string]interface{}, 0)
@@ -101,7 +100,7 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 		}
 		err = rows.Scan(scanArgs...)
 		if err != nil {
-			logger.Log1.Fatalf("mysql query error: %v", err)
+			logger.Log1.Errorf("mysql query error: %v", err)
 			return nil, err
 		}
 
@@ -118,7 +117,7 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) ([]byte, error) 
 	}
 
 	db.Close()
-	return json.Marshal(response)
+	return response, nil
 }
 
 func findConfigByKey(key string) *MySQLConfig {
@@ -127,7 +126,7 @@ func findConfigByKey(key string) *MySQLConfig {
 
 	// 解析 MySQL 配置
 	if err := viper.UnmarshalKey("mysql", &mysqlConfigs); err != nil {
-		logger.Log1.Fatalf("解析 MySQL 配置出错: %v", err)
+		logger.Log1.Errorf("解析 MySQL 配置出错: %v", err)
 	}
 	// 打印 MySQL 配置
 	for _, config := range mysqlConfigs {
