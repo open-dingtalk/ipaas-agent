@@ -18,10 +18,10 @@ jobs:
             goarch: arm64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.23'
 
@@ -39,6 +39,11 @@ jobs:
           if [ "${{ matrix.goos }}" = "windows" ]; then
             OUTPUT="${OUTPUT}.exe"
           fi
+
+          echo "Building ${OUTPUT} for ${{ matrix.goos }} ${{ matrix.goarch }}"
+          echo "Version: ${VERSION}"
+          echo "Build Time: ${BUILD_TIME}"
+          echo "Git Commit: ${GIT_COMMIT}"
           
           go build -ldflags "-X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT} -X main.Version=${VERSION}" -o ${OUTPUT}
 
