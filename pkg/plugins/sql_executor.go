@@ -28,6 +28,9 @@ func (fi *FlexInt) UnmarshalJSON(data []byte) error {
 	}
 
 	// 将字符串转换为整数
+	if s == "" {
+		return nil
+	}
 	v, err := strconv.Atoi(s)
 	if err != nil {
 		return err
@@ -45,6 +48,9 @@ type Body struct {
 	Password string  `json:"password,omitempty" mapstructure:"password,omitempty"`
 	Database string  `json:"database,omitempty" mapstructure:"database,omitempty"`
 	SQL      string  `json:"sql,omitempty" mapstructure:"sql,omitempty"`
+	// 以下字段 Oracle DB 专用
+	ServiceName string `json:"service_name,omitempty" mapstructure:"service_name,omitempty"`
+	SID         string `json:"sid,omitempty" mapstructure:"sid,omitempty"`
 	// 以下字段用于本地网关配置
 	Address    string `json:"address,omitempty" mapstructure:"address,omitempty"`
 	ConfigKey  string `json:"config_key,omitempty" mapstructure:"config_key,omitempty"`
@@ -64,6 +70,9 @@ func (b *Body) completeFrom(other *Body) {
 	b.Address = other.Address
 	b.ConfigKey = other.ConfigKey
 	b.ConnString = other.ConnString
+	// Oracle DB 专用
+	b.ServiceName = other.ServiceName
+	b.SID = other.SID
 }
 
 // QueryResult 结构体定义查询结果

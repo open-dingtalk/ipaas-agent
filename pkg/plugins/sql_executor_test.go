@@ -78,3 +78,39 @@ func TestMYSQLPlugin_doSQLExecute(t *testing.T) {
 
 	require.Equal(t, "success", qr.Message)
 }
+
+func TestORACLEDBPlugin_doSQLExecute(t *testing.T) {
+	// 创建一个 MSSQL 插件
+	p := &plugin.OracleDBPlugin{
+		Name:        "",
+		AllowRemote: true,
+	}
+	// 创建一个 Body
+	body := &plugin.Body{
+		Host:     "localhost",
+		Port:     1521,
+		User:     "system",
+		Password: "example",
+		SID:      "FREE",
+		SQL:      "SELECT * FROM HELP WHERE ROWNUM <= 10",
+	}
+	// 执行 SQL 查询
+	qr := p.DoSQLExecute(body)
+	// 断言结果
+	require.NotNil(t, qr)
+	require.NotNil(t, qr.Result)
+	require.NotNil(t, qr.Columns)
+	// 打印到控制台
+	for _, row := range qr.Result {
+		for key, col := range row {
+			switch v := col.(type) {
+			case []byte:
+				t.Logf("%s: %s", key, string(v))
+			default:
+				t.Logf("%s: %v", key, v)
+			}
+		}
+	}
+
+	require.Equal(t, "success", qr.Message)
+}

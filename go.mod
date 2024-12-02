@@ -37,6 +37,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pterm/pterm v0.12.79 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/sijms/go-ora v1.3.2 // indirect
+	github.com/sijms/go-ora/v2 v2.8.22 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/crypto v0.24.0 // indirect

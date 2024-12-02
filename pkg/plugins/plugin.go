@@ -97,6 +97,14 @@ func (pm *PluginManager) LoadPlugins() error {
 	}
 	pm.RegisterPlugin(pgsqlPlugin.Name, pgsqlPlugin)
 
+	// 6. oracle db 插件
+	oracleDBPlugin := NewOracleDBPlugin()
+	err = oracleDBPlugin.Init()
+	if err != nil {
+		logger.Log1.Errorf("初始化 OracleDB 插件失败: %v", err)
+	}
+	pm.RegisterPlugin(oracleDBPlugin.Name, oracleDBPlugin)
+
 	return nil
 }
 

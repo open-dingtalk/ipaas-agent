@@ -7,28 +7,35 @@ import (
 	"reflect"
 	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 	v1 "github.com/open-dingtalk/ipaas-agent/pkg/plugins/v1"
+	go_ora "github.com/sijms/go-ora/v2"
 	"github.com/spf13/viper"
 )
 
-type PGSQLPlugin struct {
+type OracleDBPlugin struct {
 	Name        string
 	AllowRemote bool
 	Configs     []Body
 }
 
-func (p *PGSQLPlugin) GetConnection(body *Body) (*sql.DB, error) {
-	connString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		body.Host, body.Port, body.User, body.Password, body.Database)
+func (p *OracleDBPlugin) GetConnection(body *Body) (*sql.DB, error) {
+	var urlOptions map[string]string
+	if body.SID != "" {
+		urlOptions = map[string]string{
+			"SID": body.SID,
+		}
+	}
+	connString := go_ora.BuildUrl(
+		body.Host, int(body.Port), body.ServiceName, body.User, body.Password, urlOptions,
+	)
 
-	return sql.Open("postgres", connString)
+	return sql.Open("oracle", connString)
 }
 
 // doSQLExecute 执行SQL查询
-func (p *PGSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
+func (p *OracleDBPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	startTime := time.Now()
 	defer func() {
 		logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
@@ -117,7 +124,7 @@ func (p *PGSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	}
 }
 
-func (p *PGSQLPlugin) findConfigByKey(key string) *Body {
+func (p *OracleDBPlugin) findConfigByKey(key string) *Body {
 	for _, config := range p.Configs {
 		if config.ConfigKey == key {
 			logger.Log1.WithField("config", config).Info("找到配置")
@@ -127,24 +134,24 @@ func (p *PGSQLPlugin) findConfigByKey(key string) *Body {
 	return nil
 }
 
-func NewPGSQLPlugin() *PGSQLPlugin {
-	return &PGSQLPlugin{
-		Name: "pgsql_plugin",
+func NewOracleDBPlugin() *OracleDBPlugin {
+	return &OracleDBPlugin{
+		Name: "oracledb_plugin",
 	}
 }
 
-func (p *PGSQLPlugin) Init() error {
+func (p *OracleDBPlugin) Init() error {
 	// 定义一个变量来存储 SQL 配置
 	var sqlConfigs []Body
 
 	// 解析 SQL 配置
-	if err := viper.UnmarshalKey("plugins.pgsql", &sqlConfigs); err != nil {
-		logger.Log1.Fatalf("解析 MSSQL 配置出错: %v", err)
+	if err := viper.UnmarshalKey("plugins.oracledb", &sqlConfigs); err != nil {
+		logger.Log1.Fatalf("解析 oracle 数据库配置出错: %v", err)
 	}
 
 	p.Configs = sqlConfigs
 
-	p.AllowRemote = viper.GetBool("auth.pgsql.allow_remote")
+	p.AllowRemote = viper.GetBool("auth.oracledb.allow_remote")
 
 	logger.Log1.
 		WithField("插件名", p.Name).
@@ -154,7 +161,7 @@ func (p *PGSQLPlugin) Init() error {
 	return nil
 }
 
-func (p *PGSQLPlugin) HandleMessage(ctx context.Context, df *v1.DFWrap) (*payload.DataFrameResponse, error) {
+func (p *OracleDBPlugin) HandleMessage(ctx context.Context, df *v1.DFWrap) (*payload.DataFrameResponse, error) {
 	// 初始化 Data
 	data, err := df.GetPluginDataWithType(reflect.TypeOf(Body{}))
 
@@ -187,7 +194,7 @@ func (p *PGSQLPlugin) HandleMessage(ctx context.Context, df *v1.DFWrap) (*payloa
 	return resp, nil
 }
 
-func (p *PGSQLPlugin) Close() error {
+func (p *OracleDBPlugin) Close() error {
 	// 关闭插件
 	logger.Log1.WithField("plugin", p.Name).Info("插件已关闭")
 	return nil
