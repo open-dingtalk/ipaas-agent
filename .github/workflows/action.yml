@@ -31,7 +31,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          BUILD_TIME=$(date "+%F %T")
+          BUILD_TIME=$(date "+%F_%T")
           GIT_COMMIT=$(git rev-parse HEAD)
           VERSION=${GITHUB_REF#refs/tags/}
           
