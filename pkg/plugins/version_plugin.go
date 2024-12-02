@@ -16,7 +16,7 @@ type VersionPlugin struct {
 func NewVersionPlugin() *VersionPlugin {
 	return &VersionPlugin{
 		Name:            "version_plugin",
-		ProtocolVersion: "1.0",
+		ProtocolVersion: "2.0",
 	}
 }
 

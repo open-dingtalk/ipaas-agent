@@ -72,6 +72,16 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 		}
 	}
 
+	// 获取列的类型信息
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return &QueryResult{
+			Result:  nil,
+			Columns: nil,
+			Message: err.Error(),
+		}
+	}
+
 	// 准备结果集
 	var result []map[string]interface{}
 
@@ -79,20 +89,47 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	for rows.Next() {
 		// 创建一个切片，用于存储一行的值
 		values := make([]interface{}, len(columns))
-		for i := range values {
-			values[i] = new(interface{})
+		for i, colType := range columnTypes {
+			// 根据列的扫描类型创建对应的变量
+			// values[i] = reflect.New(colType.ScanType()).Interface()
+			dbType := colType.DatabaseTypeName()
+			// 根据数据库类型创建对应的变量
+			switch dbType {
+			case "DECIMAL", "NUMERIC", "FLOAT", "REAL":
+				var v float64
+				values[i] = &v
+			case "BIGINT", "INT", "SMALLINT", "TINYINT":
+				var v int64
+				values[i] = &v
+			case "BIT":
+				var v bool
+				values[i] = &v
+			case "DATETIME", "DATETIME2", "DATE", "TIME":
+				var v time.Time
+				values[i] = &v
+			default: // VARCHAR, NVARCHAR, CHAR, NCHAR, TEXT 等
+				var v string
+				values[i] = &v
+			}
 		}
 
+		// 扫描行数据
 		err := rows.Scan(values...)
 		if err != nil {
 			continue
 		}
 
-		// 将行数据转换为map
+		// 将行数据转换为 map
 		row := make(map[string]interface{})
 		for i, col := range columns {
-			val := values[i].(*interface{})
-			row[col] = *val
+			// 处理指针类型，获取实际的值
+			// row[col] = *(values[i].(*interface{}))
+			val := values[i]
+			if bv, ok := val.(*interface{}); ok {
+				row[col] = *bv
+			} else {
+				row[col] = val
+			}
 		}
 		result = append(result, row)
 	}
