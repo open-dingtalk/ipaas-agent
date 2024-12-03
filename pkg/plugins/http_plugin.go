@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"reflect"
 	"strings"
+	"time"
 
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
@@ -123,12 +126,64 @@ func (p *HTTPPlugin) handleV1(ctx context.Context, df *v1.DFWrap) (*payload.Data
 // v2 仅仅处理HTTP请求，插件在外面已经被路由
 func (p *HTTPPlugin) handleV2(_ context.Context, df *v1.DFWrap) (*payload.DataFrameResponse, error) {
 	// 处理 v2 版本的逻辑
-	logger.Log1.Info("处理 v2 版本的消息")
-	// 示例处理逻辑
-	// 你可以在这里添加具体的处理逻辑
-	return &payload.DataFrameResponse{
-		Data: "处理 v2 版本的响应数据",
-	}, nil
+	logger.Log1.Trace("处理 HTTP 的消息")
+	request, err := df.GetPluginDataWithType(reflect.TypeOf(v1.HTTPRequest{}))
+	if err != nil {
+		return nil, err
+	}
+	httpRequest := request.(*v1.HTTPRequest)
+	logger.Log1.WithField("request", httpRequest).Info("收到 HTTP 请求")
+
+	// 开始HTTP请求
+	// 创建请求
+	req, err := http.NewRequest(httpRequest.Method, httpRequest.URL, strings.NewReader(httpRequest.Body))
+	if err != nil {
+		return nil, err
+	}
+
+	// 设置请求头
+	req.Header.Set("Content-Type", httpRequest.ContentType)
+	for key, value := range httpRequest.Headers {
+		req.Header.Set(key, value)
+	}
+
+	// 设置超时的客户端
+	client := &http.Client{
+		Timeout: time.Duration(httpRequest.Timeout) * time.Millisecond,
+	}
+
+	// 发送请求
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// 读取响应体
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// 构造响应
+	headers := make(map[string]string)
+	for k, v := range resp.Header {
+		headers[k] = strings.Join(v, ",")
+	}
+
+	response := &v1.HTTPResponse{
+		StatusCode: resp.StatusCode,
+		Headers:    headers,
+	}
+
+	var content map[string]interface{}
+	if err := json.Unmarshal(body, &content); err != nil {
+		response.Content = string(body)
+	} else {
+		response.Content = content
+	}
+
+	return v1.NewSuccessDataFrameResponse(response), nil
 }
 
 func (p *HTTPPlugin) Close() error {

@@ -172,7 +172,7 @@ func (df *DFWrap) getPluginDataV2() interface{} {
 
 // 创建一个由 CallbackResponse 包装的 DataFrameResponse
 func NewSuccessDataFrameResponse(data interface{}) *payload.DataFrameResponse {
-	cr := CallbackResponse{
+	cr := &CallbackResponse{
 		Response: data,
 	}
 	resp := payload.NewSuccessDataFrameResponse()

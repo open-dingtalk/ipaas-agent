@@ -137,24 +137,6 @@ func TestMSSQLPlugin_doSQLExecute(t *testing.T) {
 	require.NotNil(t, qr)
 	require.NotNil(t, qr.Result)
 	require.NotNil(t, qr.Columns)
-	// 打印到控制台
-	// for _, row := range qr.Result {
-	// 	for key, col := range row {
-	// 		t.Logf("%s: %v", key, col)
-	// 		// switch v := col.(type) {
-	// 		// case []byte:
-	// 		// 	t.Logf("%s: %s", key, string(v))
-	// 		// case *int64:
-	// 		// 	t.Logf("%s: %d", key, *v)
-	// 		// case *float64:
-	// 		// 	t.Logf("%s: %f", key, *v)
-	// 		// case *string:
-	// 		// 	t.Logf("%s: %s", key, *v)
-	// 		// default:
-	// 		// 	t.Logf("%s: %v", key, v)
-	// 		// }
-	// 	}
-	// }
 	jsonData, err := json.Marshal(qr.Result)
 	if err != nil {
 		t.Error(err)

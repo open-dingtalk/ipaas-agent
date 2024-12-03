@@ -49,9 +49,6 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	}
 	defer db.Close()
 
-	// Sleep for 10000ms to simulate processing time
-	// time.Sleep(10000 * time.Millisecond)
-
 	rows, err := db.Query(body.SQL)
 	if err != nil {
 		return &QueryResult{
@@ -91,7 +88,7 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 		values := make([]interface{}, len(columns))
 		for i, colType := range columnTypes {
 			// 根据列的扫描类型创建对应的变量
-			// values[i] = reflect.New(colType.ScanType()).Interface()
+			values[i] = reflect.New(colType.ScanType()).Interface()
 			dbType := colType.DatabaseTypeName()
 			// 根据数据库类型创建对应的变量
 			switch dbType {

@@ -11,20 +11,23 @@ import (
 )
 
 type HTTPRequest struct {
-	Headers     map[string]string `json:"headers"`
-	Method      string            `json:"method"`
-	Body        string            `json:"body"`
-	ContentType string            `json:"contentType"`
-	URL         string            `json:"url"`
-	Timeout     int               `json:"timeout"`
+	Headers     map[string]string `json:"headers,omitempty"`
+	Method      string            `json:"method,omitempty"`
+	Body        string            `json:"body,omitempty"`
+	ContentType string            `json:"contentType,omitempty"`
+	URL         string            `json:"url,omitempty"`
+	Timeout     int               `json:"timeout,omitempty"`
 }
 
 type HTTPResponse struct {
-	Status     string            `json:"status"`
-	StatusCode int               `json:"statusCode"`
-	Proto      string            `json:"proto"`
-	Header     map[string]string `json:"header"`
-	Body       string            `json:"body"`
+	Status     string            `json:"status,omitempty"`
+	StatusCode int               `json:"statusCode,omitempty"`
+	Proto      string            `json:"proto,omitempty"`
+	Header     map[string]string `json:"header,omitempty"`
+	Body       string            `json:"body,omitempty"`
+	// 新版
+	Headers map[string]string `json:"headers,omitempty"`
+	Content interface{}       `json:"content,omitempty"`
 }
 
 var httpClient = &http.Client{}
