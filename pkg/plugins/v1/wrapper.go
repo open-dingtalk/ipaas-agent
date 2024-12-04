@@ -180,6 +180,28 @@ func NewSuccessDataFrameResponse(data interface{}) *payload.DataFrameResponse {
 	return resp
 }
 
+// 兼容服务端旧逻辑，只能识别字符串
+func NewSuccessDataFrameResponseV1(data interface{}) *payload.DataFrameResponse {
+	var marshalText string
+	switch v := data.(type) {
+	case string:
+		marshalText = v
+	default:
+		marshalTextBytes, err := json.Marshal(data)
+		if err != nil {
+			logger.Log1.Errorf("json.Marshal error: %v", err)
+			return nil
+		}
+		marshalText = string(marshalTextBytes)
+	}
+	cr := &CallbackResponse{
+		Response: marshalText,
+	}
+	resp := payload.NewSuccessDataFrameResponse()
+	resp.SetJson(cr)
+	return resp
+}
+
 func GetResponseFromDataFrameResponse(df *payload.DataFrameResponse) (interface{}, error) {
 	var cr CallbackResponse
 	if err := json.Unmarshal([]byte(df.Data), &cr); err != nil {

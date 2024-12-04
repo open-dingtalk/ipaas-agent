@@ -90,37 +90,19 @@ func (p *HTTPPlugin) handleV1(ctx context.Context, df *v1.DFWrap) (*payload.Data
 			if err != nil {
 				return payload.NewErrorDataFrameResponse(err), err
 			}
-
-			// resp = &http.Response{
-			// 	StatusCode: r.Code,
-			// 	Status:     http.StatusText(r.Code),
-			// 	Proto:      "HTTP/1.1",
-			// 	ProtoMajor: 1,
-			// 	ProtoMinor: 1,
-			// 	Header:     make(http.Header),
-			// 	Body:       io.NopCloser(bytes.NewBufferString(bodyStr)),
-			// }
 			resp = &v1.HTTPResponse{
 				StatusCode: r.Code,
 				Status:     http.StatusText(r.Code),
 				Proto:      "HTTP/1.1",
 				Body:       bodyStr,
 			}
-			return v1.NewSuccessDataFrameResponse(resp), nil
+			return v1.NewSuccessDataFrameResponseV1(resp), nil
 		}
 	}
 
 	// 正常 http 请求
 	resp, err := v1.HandleHTTPRequest(dataModel.Body.HTTPRequest)
-	callbackResponse := &CallbackResponse{
-		Response: resp,
-	}
-	if err != nil {
-		return payload.NewErrorDataFrameResponse(err), err
-	}
-	dfResp := payload.NewSuccessDataFrameResponse()
-	dfResp.SetJson(callbackResponse)
-	return dfResp, nil
+	return v1.NewSuccessDataFrameResponseV1(resp), err
 }
 
 // v2 仅仅处理HTTP请求，插件在外面已经被路由

@@ -32,9 +32,7 @@ func (p *ProxyMySQLPlugin) HandleMessage(ctx context.Context, df *v1.DFWrap) (*p
 	if err != nil {
 		return payload.NewErrorDataFrameResponse(err), err
 	}
-	resp := payload.NewSuccessDataFrameResponse()
-	resp.SetJson(CallbackResponse{Response: res})
-	return resp, nil
+	return v1.NewSuccessDataFrameResponseV1(res), nil
 }
 
 func (p *ProxyMySQLPlugin) Close() error {
