@@ -38,12 +38,17 @@ func (p *OracleDBPlugin) GetConnection(body *Body) (*sql.DB, error) {
 func (p *OracleDBPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	startTime := time.Now()
 	defer func() {
-		logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
+		if qr != nil && qr.Message != "success" {
+			logger.Log1.WithField("cost", time.Since(startTime).String()).Errorf("SQL查询结束")
+		} else {
+			logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
+		}
 	}()
 
 	// 获取数据库连接
 	db, err := p.GetConnection(body)
 	if err != nil {
+		logger.Log1.WithField("error", err).Error("获取数据库连接失败")
 		return &QueryResult{
 			Result:  nil,
 			Columns: nil,
@@ -57,6 +62,7 @@ func (p *OracleDBPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 
 	rows, err := db.Query(body.SQL)
 	if err != nil {
+		logger.Log1.WithField("error", err).Error("执行SQL失败")
 		return &QueryResult{
 			Result:  nil,
 			Columns: nil,
@@ -68,6 +74,7 @@ func (p *OracleDBPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	// 获取列名
 	columns, err := rows.Columns()
 	if err != nil {
+		logger.Log1.WithField("error", err).Error("获取列名失败")
 		return &QueryResult{
 			Result:  nil,
 			Columns: nil,
@@ -78,6 +85,7 @@ func (p *OracleDBPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	// 获取列的类型信息
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
+		logger.Log1.WithField("error", err).Error("获取列类型失败")
 		return &QueryResult{
 			Result:  nil,
 			Columns: nil,
