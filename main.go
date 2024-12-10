@@ -41,7 +41,7 @@ func (p *program) Init(env svc.Environment) error {
 	// 读取配置文件
 	err := config.LoadConfig()
 	if err != nil {
-		logger.Log1.Fatal("加载配置文件出错: ", err)
+		logger.Log1.Error("加载配置文件出错: ", err)
 		return err
 	}
 
@@ -101,6 +101,6 @@ func (p *program) Stop() error {
 func main() {
 	prg := &program{}
 	if err := svc.Run(prg); err != nil {
-		logger.Log1.Fatalf("服务运行出错: %v", err)
+		logger.Log1.Errorf("服务运行出错: %v", err)
 	}
 }

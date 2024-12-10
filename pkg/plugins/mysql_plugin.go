@@ -37,14 +37,19 @@ func (p *MySQLPlugin) GetConnection(body *Body) (*sql.DB, error) {
 }
 
 // doMySQLExecute 执行MySQL查询
-func (p *MySQLPlugin) DoSQLExecute(body *Body) *QueryResult {
+func (p *MySQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	startTime := time.Now()
 	defer func() {
-		logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
+		if qr != nil && qr.Message != "success" {
+			logger.Log1.WithField("cost", time.Since(startTime).String()).Errorf("SQL查询结束")
+		} else {
+			logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
+		}
 	}()
 
 	db, err := p.GetConnection(body)
 	if err != nil {
+		logger.Log1.WithField("error", err).Error("获取数据库连接失败")
 		return &QueryResult{
 			Result:  nil,
 			Columns: nil,
@@ -55,6 +60,7 @@ func (p *MySQLPlugin) DoSQLExecute(body *Body) *QueryResult {
 
 	rows, err := db.Query(body.SQL)
 	if err != nil {
+		logger.Log1.WithField("error", err).Error("执行SQL查询失败")
 		return &QueryResult{
 			Result:  nil,
 			Columns: nil,

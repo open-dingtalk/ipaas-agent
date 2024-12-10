@@ -31,7 +31,11 @@ func (p *PGSQLPlugin) GetConnection(body *Body) (*sql.DB, error) {
 func (p *PGSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	startTime := time.Now()
 	defer func() {
-		logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
+		if qr != nil && qr.Message != "success" {
+			logger.Log1.WithField("cost", time.Since(startTime).String()).Errorf("SQL查询结束")
+		} else {
+			logger.Log1.WithField("cost", time.Since(startTime).String()).Infof("SQL查询结束")
+		}
 	}()
 
 	// 获取数据库连接
