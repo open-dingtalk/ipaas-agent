@@ -58,6 +58,7 @@ func (p *MySQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	}
 	defer db.Close()
 
+	logger.Log1.WithField("sql", body.SQL).Info("执行SQL")
 	rows, err := db.Query(body.SQL)
 	if err != nil {
 		logger.Log1.WithField("error", err).Error("执行SQL查询失败")

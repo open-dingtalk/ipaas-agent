@@ -49,9 +49,7 @@ func (p *PGSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	}
 	defer db.Close()
 
-	// Sleep for 10000ms to simulate processing time
-	// time.Sleep(10000 * time.Millisecond)
-
+	logger.Log1.WithField("sql", body.SQL).Info("执行SQL")
 	rows, err := db.Query(body.SQL)
 	if err != nil {
 		return &QueryResult{
