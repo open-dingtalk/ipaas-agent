@@ -88,9 +88,12 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 
 	// 准备结果集
 	var result []map[string]interface{}
+	rowCount := 0
 
 	// 扫描每一行
 	for rows.Next() {
+		rowCount++
+		logger.Log1.WithField("rowCount", rowCount).Debugf("正在处理第 %d 行数据", rowCount)
 		// 创建一个切片，用于存储一行的值
 		values := make([]interface{}, len(columns))
 		for i, colType := range columnTypes {
@@ -120,6 +123,10 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 		// 扫描行数据
 		err := rows.Scan(values...)
 		if err != nil {
+			logger.Log1.WithFields(map[string]interface{}{
+				"error": err,
+				"row":   rowCount,
+			}).Error("扫描行数据失败, 跳过")
 			continue
 		}
 
