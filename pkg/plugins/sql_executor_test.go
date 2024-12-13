@@ -119,8 +119,9 @@ func TestORACLEDBPlugin_doSQLExecute(t *testing.T) {
 func TestMSSQLPlugin_doSQLExecute(t *testing.T) {
 	// 创建一个 MSSQL 插件
 	p := &plugin.MSSQLPlugin{
-		Name:        "",
-		AllowRemote: true,
+		Name:                 "",
+		AllowRemote:          true,
+		LessCommonParameters: "encrypt=disable;trustServerCertificate=true",
 	}
 	// 创建一个 Body
 	body := &plugin.Body{
@@ -130,6 +131,37 @@ func TestMSSQLPlugin_doSQLExecute(t *testing.T) {
 		Password: "sa123456A",
 		Database: "TestDB",
 		SQL:      "SELECT * FROM Employees",
+	}
+	// 执行 SQL 查询
+	qr := p.DoSQLExecute(body)
+	// 断言结果
+	require.NotNil(t, qr)
+	require.NotNil(t, qr.Result)
+	require.NotNil(t, qr.Columns)
+	jsonData, err := json.Marshal(qr.Result)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(jsonData))
+
+	require.Equal(t, "success", qr.Message)
+}
+
+func TestMSSQLPlugin_doSQLExecute2(t *testing.T) {
+	// 创建一个 MSSQL 插件
+	p := &plugin.MSSQLPlugin{
+		Name:                 "",
+		AllowRemote:          true,
+		LessCommonParameters: "encrypt=disable;trustServerCertificate=true",
+	}
+	// 创建一个 Body
+	body := &plugin.Body{
+		Host:     "localhost",
+		Port:     1433,
+		User:     "sa",
+		Password: "sa123456A",
+		Database: "master",
+		SQL:      "SELECT * FROM AllDataTypesTest",
 	}
 	// 执行 SQL 查询
 	qr := p.DoSQLExecute(body)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	_ "github.com/microsoft/go-mssqldb"
@@ -18,15 +19,16 @@ import (
 
 // MYSQLPlugin 结构体定义 MySQL 插件
 type MSSQLPlugin struct {
-	Name        string
-	AllowRemote bool
-	Configs     []Body
+	Name                 string
+	AllowRemote          bool
+	LessCommonParameters string // 不常用参数 (如: encrypt=disable;trustServerCertificate=true)
+	Configs              []Body
 }
 
 // getConnection 创建数据库连接
 func (p *MSSQLPlugin) GetConnection(body *Body) (*sql.DB, error) {
-	connString := fmt.Sprintf("server=%s;port=%d;user id=%s;password=%s;database=%s",
-		body.Host, body.Port, body.User, body.Password, body.Database)
+	connString := fmt.Sprintf("server=%s;port=%d;user id=%s;password=%s;database=%s;%s",
+		body.Host, body.Port, body.User, body.Password, body.Database, p.LessCommonParameters)
 
 	return sql.Open("sqlserver", connString)
 }
@@ -98,8 +100,17 @@ func (p *MSSQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 		values := make([]interface{}, len(columns))
 		for i, colType := range columnTypes {
 			// 根据列的扫描类型创建对应的变量
-			values[i] = reflect.New(colType.ScanType()).Interface()
 			dbType := colType.DatabaseTypeName()
+			if colType.ScanType() == nil {
+				logger.Log1.WithFields(map[string]interface{}{
+					"column": columns[i],
+					"type":   dbType,
+				}).Warn("列的扫描类型为空")
+				var v interface{}
+				values[i] = &v
+				continue
+			}
+			values[i] = reflect.New(colType.ScanType()).Interface()
 			// 根据数据库类型创建对应的变量
 			switch dbType {
 			case "DECIMAL", "NUMERIC", "FLOAT", "REAL":
@@ -168,7 +179,14 @@ func NewMSSQLPlugin() *MSSQLPlugin {
 	}
 }
 
+var initOnce sync.Once
+
 func (p *MSSQLPlugin) Init() error {
+	initOnce.Do(func() {
+		// 设置默认值
+		viper.SetDefault("auth.mssql.allow_remote", false)
+	})
+
 	// 定义一个变量来存储 SQL 配置
 	var sqlConfigs []Body
 
@@ -180,11 +198,13 @@ func (p *MSSQLPlugin) Init() error {
 	p.Configs = sqlConfigs
 
 	p.AllowRemote = viper.GetBool("auth.mssql.allow_remote")
+	p.LessCommonParameters = viper.GetString("auth.mssql.less_common_parameters")
 
 	logger.Log1.
 		WithField("插件名", p.Name).
 		WithField("配置列表", p.Configs).
 		WithField("允许远程配置", p.AllowRemote).
+		WithField("不常用参数", p.LessCommonParameters).
 		Info("插件已初始化")
 	return nil
 }
