@@ -5,6 +5,8 @@ on:
     tags:
       - 'v*'
       - 'pre-*'
+  # 允许在 Actions 页面手动重跑一次发布构建（例如某个平台产物需要重建时）
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,13 +19,16 @@ jobs:
           - goos: windows
             goarch: arm64
 
+    permissions:
+      contents: read
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.23'
+          go-version-file: go.mod
 
       - name: Build
         env:
@@ -48,27 +53,35 @@ jobs:
           go build -ldflags "-X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT} -X main.Version=${VERSION}" -o ${OUTPUT}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
-          name: binaries
+          # 同一 run 内 artifact 名称必须唯一，matrix 下必须带上 goos/goarch
+          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
           path: ipaas-agent-*
+          if-no-files-found: error
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v8
         with:
-          name: binaries
+          pattern: binaries-*
+          # 平铺到同一目录，避免每个 artifact 一个子目录导致下面的 glob 匹配不到
+          merge-multiple: true
+          path: dist
 
       - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
-          files: ipaas-agent-*
+          files: dist/ipaas-agent-*
           prerelease: ${{ contains(github.ref, 'pre-') }}
           body_path: ./release_notes.md
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

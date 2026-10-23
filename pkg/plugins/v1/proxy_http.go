@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
+	"github.com/open-dingtalk/ipaas-agent/pkg/config"
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 )
 
@@ -69,11 +69,14 @@ func HandleHTTPRequest(ipaasHTTPRequest HTTPRequest) (*HTTPResponse, error) {
 		request.Header.Set("Content-Type", ipaasHTTPRequest.ContentType)
 	}
 	timeout := ipaasHTTPRequest.Timeout
-	if timeout == 0 {
-		timeout = 5
+	// v1 协议的 timeout 单位是秒，统一换算成毫秒后交给本地兜底策略：
+	// 平台没下发时用配置里的默认值，而不是一句写死的 5 秒。
+	externalMS := 0
+	if timeout > 0 {
+		externalMS = timeout * 1000
 	}
 
-	ctx, cancel := context.WithTimeout(request.Context(), time.Duration(timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(request.Context(), config.GetTimeoutConfig().HTTPTimeout(externalMS))
 	defer cancel()
 	request = request.WithContext(ctx)
 	response, err := httpClient.Do(request)

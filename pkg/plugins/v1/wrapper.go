@@ -159,7 +159,13 @@ func (df *DFWrap) GetPluginData() interface{} {
 
 func (df *DFWrap) getPluginDataV1() interface{} {
 	// 1.0 从 http body 里获取
-	return df.GetDataModelV1().Body.HTTPRequest.Body
+	model := df.GetDataModelV1()
+	if model == nil {
+		// 报文为空或格式非法时 GetDataModelV1 已记录错误，这里返回 nil 交由调用方报错，
+		// 不能让一个坏报文把整个网关 panic 掉
+		return nil
+	}
+	return model.Body.HTTPRequest.Body
 }
 
 func (df *DFWrap) getPluginDataV2() interface{} {

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
+	"github.com/open-dingtalk/ipaas-agent/pkg/config"
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 	v1 "github.com/open-dingtalk/ipaas-agent/pkg/plugins/v1"
 )
@@ -59,7 +60,11 @@ func (p *MySQLPlugin) DoSQLExecute(body *Body) (qr *QueryResult) {
 	defer db.Close()
 
 	logger.Log1.WithField("sql", body.SQL).Info("执行SQL")
-	rows, err := db.Query(body.SQL)
+	// 连接与查询的整体超时，避免慢查询把这次回调一直挂住
+	queryCtx, cancelQuery := context.WithTimeout(context.Background(), config.GetTimeoutConfig().DBTimeout())
+	defer cancelQuery()
+
+	rows, err := db.QueryContext(queryCtx, body.SQL)
 	if err != nil {
 		logger.Log1.WithField("error", err).Error("执行SQL查询失败")
 		return &QueryResult{

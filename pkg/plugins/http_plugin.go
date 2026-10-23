@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/payload"
+	"github.com/open-dingtalk/ipaas-agent/pkg/config"
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 	v1 "github.com/open-dingtalk/ipaas-agent/pkg/plugins/v1"
 )
@@ -65,6 +65,10 @@ func getResponseBodyStr(response interface{}) (string, error) {
 // v1 协议兼容代码，兼容 HTTP 代理和插件
 func (p *HTTPPlugin) handleV1(ctx context.Context, df *v1.DFWrap) (*payload.DataFrameResponse, error) {
 	dataModel := df.GetDataModelV1()
+	if dataModel == nil {
+		err := fmt.Errorf("解析 v1 协议数据失败")
+		return payload.NewErrorDataFrameResponse(err), err
+	}
 
 	// 二次路由插件
 	for k, v := range dataModel.Body.HTTPRequest.Headers {
@@ -106,7 +110,7 @@ func (p *HTTPPlugin) handleV1(ctx context.Context, df *v1.DFWrap) (*payload.Data
 }
 
 // v2 仅仅处理HTTP请求，插件在外面已经被路由
-func (p *HTTPPlugin) handleV2(_ context.Context, df *v1.DFWrap) (*payload.DataFrameResponse, error) {
+func (p *HTTPPlugin) handleV2(parentCtx context.Context, df *v1.DFWrap) (*payload.DataFrameResponse, error) {
 	// 处理 v2 版本的逻辑
 	logger.Log1.Trace("处理 HTTP 的消息")
 	request, err := df.GetPluginDataWithType(reflect.TypeOf(v1.HTTPRequest{}))
@@ -129,10 +133,16 @@ func (p *HTTPPlugin) handleV2(_ context.Context, df *v1.DFWrap) (*payload.DataFr
 		req.Header.Set(key, value)
 	}
 
-	// 设置超时的客户端
-	client := &http.Client{
-		Timeout: time.Duration(httpRequest.Timeout) * time.Millisecond,
+	// 超时控制：平台下发的 timeout 单位是毫秒，为 0 时用本地默认值兜底，
+	// 否则 http.Client 的 0 表示永不超时，一次卡住的后端调用会一直占着回调。
+	if parentCtx == nil {
+		parentCtx = context.Background()
 	}
+	ctx, cancel := context.WithTimeout(parentCtx, config.GetTimeoutConfig().HTTPTimeout(httpRequest.Timeout))
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	client := &http.Client{}
 
 	// 发送请求
 	resp, err := client.Do(req)

@@ -51,6 +51,10 @@ func UpdateUISuccess(message string) {
 	pterm.Success.Println(message)
 }
 
+func UpdateUIError(message string) {
+	pterm.Error.Println(message)
+}
+
 func (hook *PtermHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }

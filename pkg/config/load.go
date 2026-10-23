@@ -51,10 +51,15 @@ func LoadConfig() error {
 
 	// 从环境变量中读取配置
 	viper.BindEnv("auth.openAPIHost", "IPAAS_AGENT_AUTH_OPEN_API_HOST")
+	viper.BindEnv("auth.proxy", "IPAAS_AGENT_AUTH_PROXY")
 
 	// 默认值
 	viper.SetDefault("auth.mssql.allow_remote", false)
 	viper.SetDefault("auth.mysql.allow_remote", false)
+	// 超时兜底：平台未下发 timeout 时不至于变成"永不超时"
+	viper.SetDefault("timeout.http_default_ms", v1.DefaultHTTPTimeoutMS)
+	viper.SetDefault("timeout.http_max_ms", 0)
+	viper.SetDefault("timeout.db_ms", v1.DefaultDBTimeoutMS)
 
 	return nil
 }
@@ -85,8 +90,26 @@ func GetAuthClientConfig() *v1.AuthClientConfig {
 			viper.GetString("auth.openAPIHost"),
 			"https://api.dingtalk.com",
 		),
+		Proxy: FirstNonEmpty(
+			viper.GetString("auth.proxy"),
+			viper.GetString("client.proxy"),
+		),
 	}
 	return auth
+}
+
+// GetTimeoutConfig 读取超时配置；未配置时返回内置默认值。
+// 每次调用都重新读取，因此配置文件热更新后即刻生效。
+func GetTimeoutConfig() *v1.TimeoutConfig {
+	mu.RLock()
+	defer mu.RUnlock()
+	conf := &v1.TimeoutConfig{
+		HTTPDefaultMS: viper.GetInt("timeout.http_default_ms"),
+		HTTPMaxMS:     viper.GetInt("timeout.http_max_ms"),
+		DBMS:          viper.GetInt("timeout.db_ms"),
+	}
+	conf.Complete()
+	return conf
 }
 
 func FirstNonEmpty(values ...string) string {

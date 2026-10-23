@@ -60,9 +60,11 @@ func (p *program) Init(env svc.Environment) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.cli = client.NewClient(config.GetAuthClientConfig(), pluginManager)
 	err = p.cli.Connect(p.ctx)
-	if err != nil {
-		logger.Log1.Fatalf("连接到服务器失败: %v", err)
-		return err
+	connected := err == nil
+	if !connected {
+		// 这里不退出进程：网络抖动、代理未就绪、凭证下发延迟都会让第一次建连失败，
+		// 而 Connect 已经在后台按退避继续重试，退出反而要人工重启才能恢复。
+		logger.Log1.WithField("error", err).Error("首次连接服务器失败，网关保持运行并在后台重试")
 	}
 
 	// 监听配置文件变化
@@ -72,7 +74,11 @@ func (p *program) Init(env svc.Environment) error {
 		pluginManager.ReloadConfig()
 	})
 
-	ui.UpdateUISuccess("初始化成功")
+	if connected {
+		ui.UpdateUISuccess("初始化成功")
+	} else {
+		ui.UpdateUIError("初始化完成，与服务器的连接将在后台重试")
+	}
 
 	return nil
 }

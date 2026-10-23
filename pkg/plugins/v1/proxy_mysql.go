@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -8,6 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 
+	"github.com/open-dingtalk/ipaas-agent/pkg/config"
 	"github.com/open-dingtalk/ipaas-agent/pkg/logger"
 )
 
@@ -50,6 +52,9 @@ type MySQLConfig struct {
 }
 
 func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) (interface{}, error) {
+	if agentProtocol == nil {
+		return nil, fmt.Errorf("v1 协议数据为空")
+	}
 	logger.Log1.Infof("handle mysql proxy request: %v", agentProtocol)
 	mysqlProtocol := &MySQLAgentProtocol{
 		ConfigKey:    agentProtocol.Body.ConfigKey,
@@ -65,8 +70,11 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) (interface{}, er
 	logger.Log1.Infof("mysql config: %v", mySqlConfig)
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", mySqlConfig.Username, mySqlConfig.Password, mySqlConfig.Addr, mySqlConfig.Database))
 	if err != nil {
-		panic(err)
+		// 单个坏配置不该让整个进程炸掉，这里只让本次调用失败
+		logger.Log1.Errorf("open mysql error: %v", err)
+		return nil, err
 	}
+	defer db.Close()
 	// See "Important settings" section.
 	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(10)
@@ -74,7 +82,10 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) (interface{}, er
 
 	// Query
 	runSql := mysqlProtocol.ConfigParams.Sql
-	rows, err := db.Query(runSql)
+	queryCtx, cancelQuery := context.WithTimeout(context.Background(), config.GetTimeoutConfig().DBTimeout())
+	defer cancelQuery()
+
+	rows, err := db.QueryContext(queryCtx, runSql)
 	if err != nil {
 		logger.Log1.Errorf("mysql query error: %v", err)
 		return nil, err
@@ -116,7 +127,6 @@ func HandleMySQLProxyRequest(agentProtocol *IPaaSAgentProtocol) (interface{}, er
 		response = append(response, row)
 	}
 
-	db.Close()
 	return response, nil
 }
 

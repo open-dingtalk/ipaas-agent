@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"os"
+	"time"
 
+	v1 "github.com/open-dingtalk/ipaas-agent/pkg/config/v1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -79,4 +81,59 @@ plugins:
 	// require.Equal(t, "root", config.Plugins[1].ClientPluginOptions.(*v1.MySQLPluginOptions).Password)
 	// require.Equal(t, "example", config.Plugins[1].ClientPluginOptions.(*v1.MySQLPluginOptions).Database)
 	// require.Equal(t, "default2", config.Plugins[1].ClientPluginOptions.(*v1.MySQLPluginOptions).ConfigKey)
+}
+
+// TestGetTimeoutConfig 校验超时兜底策略：平台没下发值时不能退化成"永不超时"，
+// 下发了值时按平台优先、只在超过本地上限时截断。
+func TestGetTimeoutConfig(t *testing.T) {
+	t.Cleanup(func() {
+		viper.Set("timeout.http_default_ms", 0)
+		viper.Set("timeout.http_max_ms", 0)
+		viper.Set("timeout.db_ms", 0)
+	})
+
+	// 未配置：回落到内置默认值
+	viper.Set("timeout.http_default_ms", 0)
+	viper.Set("timeout.http_max_ms", 0)
+	viper.Set("timeout.db_ms", 0)
+	conf := GetTimeoutConfig()
+	require.Equal(t, v1.DefaultHTTPTimeoutMS, conf.HTTPDefaultMS)
+	require.Equal(t, v1.DefaultDBTimeoutMS, conf.DBMS)
+	require.Equal(t, time.Duration(v1.DefaultHTTPTimeoutMS)*time.Millisecond, conf.HTTPTimeout(0))
+
+	// 显式配置：按配置生效
+	viper.Set("timeout.http_default_ms", 8000)
+	viper.Set("timeout.http_max_ms", 10000)
+	viper.Set("timeout.db_ms", 1500)
+	conf = GetTimeoutConfig()
+	require.Equal(t, 1500*time.Millisecond, conf.DBTimeout())
+	require.Equal(t, 8*time.Second, conf.HTTPTimeout(0), "平台未下发时使用本地默认值")
+	require.Equal(t, 9*time.Second, conf.HTTPTimeout(9000), "平台下发的值优先")
+	require.Equal(t, 10*time.Second, conf.HTTPTimeout(60000), "超过本地上限时截断")
+
+	// 负数上限按未配置处理
+	viper.Set("timeout.http_max_ms", -1)
+	conf = GetTimeoutConfig()
+	require.Equal(t, 60*time.Second, conf.HTTPTimeout(60000))
+}
+
+// TestGetAuthClientConfigProxy 校验代理配置的两个入口：auth.proxy 优先，client.proxy 兼容旧写法。
+func TestGetAuthClientConfigProxy(t *testing.T) {
+	t.Cleanup(func() {
+		viper.Set("auth.proxy", "")
+		viper.Set("client.proxy", "")
+	})
+
+	viper.Set("auth.clientID", "id")
+	viper.Set("auth.clientSecret", "secret")
+	viper.Set("auth.proxy", "")
+	viper.Set("client.proxy", "http://127.0.0.1:7890")
+	require.Equal(t, "http://127.0.0.1:7890", GetAuthClientConfig().Proxy)
+
+	viper.Set("auth.proxy", "http://10.0.0.1:8080")
+	require.Equal(t, "http://10.0.0.1:8080", GetAuthClientConfig().Proxy)
+
+	viper.Set("auth.proxy", "")
+	viper.Set("client.proxy", "")
+	require.Empty(t, GetAuthClientConfig().Proxy, "未配置时保持直连")
 }

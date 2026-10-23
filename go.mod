@@ -7,7 +7,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/lib/pq v1.10.9
 	github.com/microsoft/go-mssqldb v1.7.2
-	github.com/open-dingtalk/dingtalk-stream-sdk-go v0.9.0
+	github.com/open-dingtalk/dingtalk-stream-sdk-go v0.9.1
 	github.com/pterm/pterm v0.12.80
 	github.com/sijms/go-ora/v2 v2.8.22
 	github.com/sirupsen/logrus v1.9.3
@@ -45,7 +45,7 @@ require (
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/judwhite/go-svc v1.2.1
 	github.com/magiconair/properties v1.8.7 // indirect
